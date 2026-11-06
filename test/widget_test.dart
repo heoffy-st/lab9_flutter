@@ -1,30 +1,56 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
-import 'package:post_explorer/main.dart';
+import 'package:post_explorer/presentation/screens/posts_page.dart';
+import 'package:post_explorer/presentation/state/post_state.dart';
+
+import 'support/fake_post_repository.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const PostExplorerApp());
+  late FakePostRepository repository;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  setUp(() {
+    repository = FakePostRepository();
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  Widget createTestWidget() {
+    return ChangeNotifierProvider(
+      create: (_) => PostState(repository: repository),
+      child: const MaterialApp(home: PostsPage()),
+    );
+  }
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('PostsPage displays application title', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Post Explorer'), findsOneWidget);
+  });
+
+  testWidgets('PostsPage displays posts from repository', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Flutter Testing'), findsOneWidget);
+    expect(find.text('Dart Programming'), findsOneWidget);
+    expect(find.text('Mobile Development'), findsOneWidget);
+  });
+
+  testWidgets('Search filters posts by title', (WidgetTester tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'Flutter');
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Flutter Testing'), findsOneWidget);
+    expect(find.text('Dart Programming'), findsNothing);
+    expect(find.text('Mobile Development'), findsNothing);
   });
 }
